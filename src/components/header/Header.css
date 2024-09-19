@@ -1,5 +1,10 @@
 .header {
+  color: var(--accent-color);
   background-color: var(--primary-color);
   padding: 0.5rem 2rem;
   text-align: center;
+}
+
+h1{
+  font-weight: bold;
 }
