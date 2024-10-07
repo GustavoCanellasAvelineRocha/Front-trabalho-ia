@@ -6,7 +6,8 @@ import "./PlayerTurn.css";
 export default function PlayerTurn() {
   const { currentPlayer } = useContext(PlayerContext);
 
-  const { statusGame, decidedMethod } = useContext(RequestsContext);
+  const { statusGame, decidedMethod, statusRequest } =
+    useContext(RequestsContext);
 
   return (
     <>
@@ -37,9 +38,14 @@ export default function PlayerTurn() {
               O
             </label>
           </div>
-          {decidedMethod !== "" ? (
+          {decidedMethod !== "" && statusRequest === "OK" ? (
             <p className="method">
               <b>Método de decisão utilizado:</b> {decidedMethod}
+            </p>
+          ) : null}
+          {statusRequest !== "OK" ? (
+            <p className="method">
+              <b>Carregando...</b>
             </p>
           ) : null}
         </div>
