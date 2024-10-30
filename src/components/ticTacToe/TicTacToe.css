@@ -54,3 +54,49 @@ p {
 .loading {
   cursor: wait;
 }
+
+.hasGame {
+  margin-block: 20px;
+  color: var(--secondary-color);
+  font-size: 1.5rem;
+  font-weight: bold;
+}
+
+.gap {
+  margin-top: 4px;
+  width: 310px;
+  justify-content: space-between;
+}
+
+.padding {
+  padding: 10px;
+}
+
+.displayNone {
+  display: none;
+}
+
+.radio-label-difficulty {
+  font-size: 1.2rem;
+  color: #666;
+  padding: 10px 15px;
+  border: 2px solid transparent;
+  border-radius: 8px;
+  background-color: #f0f0f0;
+  transition: background-color 0.3s ease, border 0.3s ease;
+  cursor: pointer;
+}
+
+.radio-label-difficulty.active {
+  border: 2px solid var(--primary-color);
+  background-color: #e0f7e4;
+  color: #333;
+}
+
+.dificuldade {
+  font-size: 1.25rem;
+  font-weight: bold;
+  color: var(--primary-color);
+  margin-top: 1.5rem;
+  margin-bottom: 0;
+}

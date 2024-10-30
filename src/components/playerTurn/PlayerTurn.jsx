@@ -6,12 +6,11 @@ import "./PlayerTurn.css";
 export default function PlayerTurn() {
   const { currentPlayer } = useContext(PlayerContext);
 
-  const { statusGame, decidedMethod, statusRequest } =
-    useContext(RequestsContext);
+  const { statusGame, minimax, statusRequest } = useContext(RequestsContext);
 
   return (
     <>
-      {statusGame === "NOT_OVER" ? (
+      {statusGame === "NOT_OVER" || statusGame === "NOT_STARTED" ? (
         <div className="player-toggle-container">
           <p className="current-player-text">Vez do jogador: {currentPlayer}</p>
           <div className="radio-container">
@@ -38,9 +37,9 @@ export default function PlayerTurn() {
               O
             </label>
           </div>
-          {decidedMethod !== "" && statusRequest === "OK" ? (
+          {minimax !== "" && statusRequest === "OK" ? (
             <p className="method">
-              <b>Método de decisão utilizado:</b> {decidedMethod}
+              <b>Minimax foi usado?:</b> {minimax ? "Sim" : "Não"}
             </p>
           ) : null}
           {statusRequest !== "OK" ? (

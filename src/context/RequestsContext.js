@@ -1,17 +1,20 @@
 import { createContext, useState } from "react";
 
-const API = "https://usual-bren-intel-artf-215e03f8.koyeb.app/game/status";
+const API = "http://127.0.0.1:5000/game/status";
 
 export const RequestsContext = createContext();
 
 export const RequestsContextProvinder = ({ children }) => {
-  const [statusGame, setStatusGame] = useState("NOT_OVER");
+  const [statusGame, setStatusGame] = useState("NOT_STARTED");
   const [statusRequest, setStatusRequest] = useState("OK");
-  const [decidedMethod, setDecidedMethod] = useState("");
+  const [minimax, setMinimax] = useState("");
+  const [difficulty, setDifficulty] = useState("easy");
+  const [nextMove, setnextMove] = useState("");
 
   async function sendStatusGame(board) {
     try {
       console.log(board);
+      console.log(difficulty);
       setStatusRequest("Loading");
 
       const newBoard = board.map((row) =>
@@ -23,7 +26,7 @@ export const RequestsContextProvinder = ({ children }) => {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ board: newBoard }),
+        body: JSON.stringify({ board: newBoard, difficulty: difficulty }),
       });
 
       if (!response.ok) {
@@ -34,8 +37,8 @@ export const RequestsContextProvinder = ({ children }) => {
 
       console.log(data);
 
-      setStatusGame(data.status);
-      setDecidedMethod(data.model_used);
+      setnextMove(data.next_move);
+      setMinimax(data.used_minimax);
       setStatusRequest("OK");
     } catch (error) {
       console.log(error);
@@ -49,8 +52,13 @@ export const RequestsContextProvinder = ({ children }) => {
         sendStatusGame,
         setStatusGame,
         statusRequest,
-        decidedMethod,
-        setDecidedMethod,
+        setMinimax,
+        minimax,
+        difficulty,
+        setDifficulty,
+        nextMove,
+        setnextMove,
+        setStatusRequest,
       }}
     >
       {children}
