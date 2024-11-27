@@ -10,7 +10,9 @@ export default function PlayerTurn() {
 
   return (
     <>
-      {statusGame === "NOT_OVER" || statusGame === "NOT_STARTED" ? (
+      {statusGame === "NOT_OVER" ||
+      statusGame === "NOT_STARTED" ||
+      statusGame === "TRAINING" ? (
         <div className="player-toggle-container">
           <p className="current-player-text">Vez do jogador: {currentPlayer}</p>
           <div className="radio-container">
@@ -64,9 +66,14 @@ export default function PlayerTurn() {
               </p>
             </div>
           ) : null}
-          {statusGame === "DRAW" ? (
+          {statusGame === "DRAW" && statusGame !== "CORRUPTED" ? (
             <div className="player-toggle-container noMargin">
               <p className="current-player-text winner"> EMPATE! </p>
+            </div>
+          ) : null}
+          {statusGame === "CORRUPTED" ? (
+            <div className="player-toggle-container noMargin">
+              <p className="current-player-text winner"> Erro da rede! </p>
             </div>
           ) : null}
         </>

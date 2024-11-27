@@ -2,6 +2,7 @@ import React, { useState, useContext, useEffect } from "react";
 import { PlayerContext } from "../../context/PlayerContext";
 import "./TicTacToe.css";
 import { RequestsContext } from "../../context/RequestsContext";
+import Minimax from "./../minimax/Minimax";
 
 export default function TicTacToe() {
   const [board, setBoard] = useState([
@@ -22,6 +23,16 @@ export default function TicTacToe() {
     setStatusRequest,
     setMinimax,
     nextMove,
+    modo,
+    setModo,
+    sendStatusGameRede,
+    sendTraining,
+    sendTrainingStep,
+    board_state,
+    generation,
+    playerVez,
+    esperar,
+    setBoard_state,
   } = useContext(RequestsContext);
 
   const handleClick = async (row, col) => {
@@ -56,12 +67,55 @@ export default function TicTacToe() {
     sendApi(newBoard);
   };
 
+  const handleClickRede = async (row, col) => {
+    if (statusGame === "NOT_STARTED") {
+      setStatusGame("NOT_OVER");
+    }
+
+    if (
+      board[row][col] !== "b" ||
+      (statusGame !== "NOT_OVER" && statusGame !== "NOT_STARTED")
+    )
+      return;
+
+    const newBoard = board.map((r, rowIndex) =>
+      r.map((cell, colIndex) => {
+        if (rowIndex === row && colIndex === col) {
+          return "O";
+        }
+        return cell;
+      })
+    );
+
+    setBoard(newBoard);
+
+    if (checkWinner(newBoard)) {
+      setStatusGame("O_WON");
+    }
+
+    togglePlayer();
+    setStatusRequest("Loading");
+    await sleep(500);
+    sendApi(newBoard);
+  };
+
+  function startGame() {
+    if (statusGame === "NOT_STARTED") {
+      setStatusGame("NOT_OVER");
+    }
+    sendApi(board);
+  }
+
   function sleep(ms) {
     return new Promise((resolve) => setTimeout(resolve, ms));
   }
 
+  const handleClickModo = (newmodo) => {
+    setModo(newmodo);
+  };
+
   useEffect(() => {
-    if (nextMove && statusGame === "NOT_OVER") {
+    if (nextMove && statusGame === "NOT_OVER" && modo === "minimax") {
       const updatedBoard = board.map((r, rowIndex) =>
         r.map((cell, colIndex) => {
           if (rowIndex === nextMove[0] && colIndex === nextMove[1]) {
@@ -81,11 +135,91 @@ export default function TicTacToe() {
     }
   }, [nextMove]);
 
+  useEffect(() => {
+    if (nextMove && statusGame === "NOT_OVER" && modo === "contraRede") {
+      const updatedBoard = board.map((r, rowIndex) =>
+        r.map((cell, colIndex) => {
+          if (rowIndex === nextMove[0] && colIndex === nextMove[1]) {
+            return "X";
+          }
+          return cell;
+        })
+      );
+
+      setBoard(updatedBoard);
+
+      if (checkWinner(updatedBoard)) {
+        setStatusGame("X_WON");
+      } else {
+        togglePlayer();
+      }
+    }
+  }, [nextMove]);
+
+  useEffect(() => {
+    if (nextMove && statusGame === "TRAINING") {
+      if (currentPlayer === "X") {
+        const updatedBoard = board.map((r, rowIndex) =>
+          r.map((cell, colIndex) => {
+            if (rowIndex === nextMove[0] && colIndex === nextMove[1]) {
+              return "X";
+            }
+            return cell;
+          })
+        );
+        setBoard(updatedBoard);
+
+        if (checkWinner(updatedBoard)) {
+          setBoard_state("X_WON");
+        } else {
+          togglePlayer();
+        }
+      } else {
+        const updatedBoard = board.map((r, rowIndex) =>
+          r.map((cell, colIndex) => {
+            if (rowIndex === nextMove[0] && colIndex === nextMove[1]) {
+              return "O";
+            }
+            return cell;
+          })
+        );
+        setBoard(updatedBoard);
+
+        if (checkWinner(updatedBoard)) {
+          setBoard_state("O_WON");
+        } else {
+          togglePlayer();
+        }
+      }
+    }
+  }, [nextMove]);
+
+  useEffect(() => {
+    const handleEffect = async () => {
+      if (board_state !== "NOT_OVER" && statusGame === "TRAINING") {
+        setBoard([
+          ["b", "b", "b"],
+          ["b", "b", "b"],
+          ["b", "b", "b"],
+        ]);
+        setCurrentPlayer("X");
+      }
+    };
+
+    handleEffect();
+  }, [board]);
+
   const sendApi = async (newBoard) => {
-    await sendStatusGame(newBoard);
+    if (modo === "contraRede") {
+      await sendStatusGameRede(newBoard);
+    }
+    if (modo === "minimax") {
+      await sendStatusGame(newBoard);
+    }
   };
 
   const restartGame = () => {
+    setModo("minimax");
     setMinimax("");
     setStatusGame("NOT_STARTED");
     setBoard([
@@ -95,23 +229,58 @@ export default function TicTacToe() {
     ]);
   };
 
+  const startTraining = async () => {
+    await sendTraining();
+    setStatusGame("TRAINING");
+
+    let trainingRunning = true;
+
+    while (trainingRunning) {
+      await sendTrainingStep(board);
+
+      await sleep(8000);
+    }
+  };
+
   const renderCell = (row, col) => {
     const value = board[row][col];
+
+    if (modo === "TreinoRede") {
+      return (
+        <div className={`cell noPointer `}>{value === "b" ? "" : value}</div>
+      );
+    }
     if (statusGame !== "NOT_OVER" && statusGame !== "NOT_STARTED") {
-      return <div className="cell noPointer">{value === "b" ? "" : value}</div>;
+      return (
+        <div className={`cell noPointer `}>{value === "b" ? "" : value}</div>
+      );
     }
     if (statusRequest !== "OK") {
-      return <div className="cell loading">{value === "b" ? "" : value}</div>;
+      return (
+        <div className={`cell loading `}>{value === "b" ? "" : value}</div>
+      );
     }
+
+    if (
+      modo === "contraRede" &&
+      (statusGame === "NOT_STARTED" || statusRequest !== "OK")
+    ) {
+      return <div className={`cell`}>{value === "b" ? "" : value}</div>;
+    }
+
+    if (modo === "contraRede" && statusGame !== "NOT_STARTED") {
+      return (
+        <div className={`cell `} onClick={() => handleClickRede(row, col)}>
+          {value === "b" ? "" : value}
+        </div>
+      );
+    }
+
     return (
-      <div className="cell" onClick={() => handleClick(row, col)}>
+      <div className={`cell `} onClick={() => handleClick(row, col)}>
         {value === "b" ? "" : value}
       </div>
     );
-  };
-
-  const handleClickDifficulty = (newDifficulty) => {
-    setDifficulty(newDifficulty);
   };
 
   const checkWinner = (board) => {
@@ -159,63 +328,142 @@ export default function TicTacToe() {
       </div>
       {statusGame === "NOT_STARTED" ? (
         <>
-          <p
-            className={`dificuldade ${
-              statusRequest === "Loading" ? "displayNone" : ""
-            }`}
-          >
-            {" "}
-            Selecione a Dificuldade{" "}
-          </p>
-          <div
-            className={`${statusRequest === "Loading" ? "displayNone" : ""}`}
-          >
-            <div className="radio-container gap">
-              <label
-                className={`radio-label-difficulty padding ${
-                  difficulty === "easy" ? "active" : ""
-                }`}
-              >
-                <input
-                  type="radio"
-                  value="easy"
-                  checked={difficulty === "easy"}
-                  onClick={(event) => handleClickDifficulty(event.target.value)}
-                />
-                Fácil
-              </label>
-              <label
-                className={`radio-label-difficulty padding ${
-                  difficulty === "medium" ? "active" : ""
-                }`}
-              >
-                <input
-                  type="radio"
-                  value="medium"
-                  checked={difficulty === "medium"}
-                  onClick={(event) => handleClickDifficulty(event.target.value)}
-                />
-                Médio
-              </label>
-              <label
-                className={`radio-label-difficulty padding ${
-                  difficulty === "hard" ? "active" : ""
-                }`}
-              >
-                <input
-                  type="radio"
-                  value="hard"
-                  checked={difficulty === "hard"}
-                  onClick={(event) => handleClickDifficulty(event.target.value)}
-                />
-                Difícil
-              </label>
-            </div>
+          <p className="current-player-text mg">Escolha o Modo!</p>
+          <div className="radio-container gap">
+            <label
+              className={`radio-label-modo padding ${
+                modo === "minimax" ? "active" : ""
+              }`}
+            >
+              <input
+                type="radio"
+                value="minimax"
+                checked={modo === "minimax"}
+                onClick={(event) => handleClickModo(event.target.value)}
+              />
+              Contra Minimax
+            </label>
+            <label
+              className={`radio-label-modo padding ${
+                modo === "TreinoRede" ? "active" : ""
+              }`}
+            >
+              <input
+                type="radio"
+                value="TreinoRede"
+                checked={modo === "TreinoRede"}
+                onClick={(event) => handleClickModo(event.target.value)}
+              />
+              Treinar Rede
+            </label>
+            <label
+              className={`radio-label-modo padding ${
+                modo === "contraRede" ? "active" : ""
+              }`}
+            >
+              <input
+                type="radio"
+                value="contraRede"
+                checked={modo === "contraRede"}
+                onClick={(event) => handleClickModo(event.target.value)}
+              />
+              Contra Rede
+            </label>
           </div>
+          {modo === "minimax" && <Minimax />}
+          {modo === "TreinoRede" && (
+            <button className="buttonPlayAgain" onClick={startTraining}>
+              Iniciar treino!
+            </button>
+          )}
+          {modo === "contraRede" && statusGame === "NOT_STARTED" && (
+            <button className="buttonPlayAgain" onClick={startGame}>
+              Iniciar jogo!
+            </button>
+          )}
+          {modo === "contraRede" && statusGame === "NOT_OVER" && (
+            <p className="dificuldade">
+              Clique no tabuleiro para fazer sua jogada!
+            </p>
+          )}
+        </>
+      ) : board_state === "CORRUPTED" ? (
+        <>
+          <p className="current-player-text mg">
+            <b>
+              Erro: O jogo foi corrompido. A rede jogou em um lugar inviável.
+            </b>
+          </p>
+
+          {nextMove && nextMove.length > 0 && (
+            <p className="current-player-text mg">
+              Errou ao tentar Jogar em:{" "}
+              {`Linha: ${nextMove[0]}, Coluna: ${nextMove[1]}`}
+            </p>
+          )}
+          {difficulty && (
+            <p className="current-player-text mg">Dificuldade: {difficulty}</p>
+          )}
+          {generation && (
+            <p className="current-player-text mg">Geração: {generation}</p>
+          )}
+          {playerVez && (
+            <p className="current-player-text mg">
+              Jogador da vez: {playerVez}
+            </p>
+          )}
+        </>
+      ) : board_state !== "CORRUPTED" && board_state !== "NOT_OVER" ? (
+        <>
+          {board_state === "X_WON" && (
+            <p className="current-player-text mg">A rede ganhou!</p>
+          )}
+          {board_state === "O_WON" && (
+            <p className="current-player-text mg">O mimimax ganhou!</p>
+          )}
+          {board_state === "DRAW" && (
+            <p className="current-player-text mg">Empate!</p>
+          )}
+
+          {difficulty && (
+            <p className="current-player-text mg">Dificuldade: {difficulty}</p>
+          )}
+          {generation !== 0 && (
+            <p className="current-player-text mg">Geração: {generation}</p>
+          )}
+          {generation === 0 && (
+            <p className="current-player-text mg">Geração: 0</p>
+          )}
+          {playerVez && (
+            <p className="current-player-text mg">
+              Jogador da vez: {playerVez}
+            </p>
+          )}
+        </>
+      ) : statusGame === "TRAINING" ? (
+        <>
+          <p className="current-player-text mg">
+            <b>Treinando a rede neural...</b>
+          </p>
+        </>
+      ) : statusGame === "CORRUPTED" ? (
+        <>
+          <p className="current-player-text mg">
+            <b>A rede neural jogou em um posição Inválida</b>
+          </p>
+          {nextMove && nextMove.length > 0 && (
+            <p className="current-player-text mg">
+              Errou ao tentar Jogar em:{" "}
+              {`Linha: ${nextMove[0]}, Coluna: ${nextMove[1]}`}
+            </p>
+          )}
+          <button className="buttonPlayAgain" onClick={restartGame}>
+            Voltar ao menu
+          </button>
         </>
       ) : statusGame !== "NOT_OVER" ? (
         <button className="buttonPlayAgain" onClick={restartGame}>
-          Jogar novamente
+          Voltar ao menu
         </button>
       ) : (
         <p className="method hasGame">Tem jogo!</p>
